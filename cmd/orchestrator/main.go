@@ -38,10 +38,7 @@ func run() error {
 	rootCtx, rootCtxCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer rootCtxCancel()
 	// all connections
-	// conn, productClient, err := product.Connect(cfg.Product.Address, cfg.Product.TLSCAFile, cfg.Product.ServerName, !production)
-
-	// all conns
-	productConn, productClient, err := product.Connect("0.0.0.0:50051")
+	productConn, productClient, err := product.Connect(srv.cfg.ProductConfig.Address)
 	if err != nil {
 		return err
 	}

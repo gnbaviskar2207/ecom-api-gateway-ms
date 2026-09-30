@@ -2,3 +2,6 @@ environment: development
 http_api:
   address: "0.0.0.0:8081"
   tls: false
+
+product_config:
+  address: "0.0.0.0:50051"

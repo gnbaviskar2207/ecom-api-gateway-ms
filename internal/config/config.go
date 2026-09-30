@@ -13,6 +13,11 @@ type GatewayConfig struct {
 type Config struct {
 	GatewayConfig GatewayConfig `yaml:"gateway"`
 	HttpApiConfig HttpApiConfig `yaml:"http_api"`
+	ProductConfig ProductConfig `yaml:"product_config"`
+}
+
+type ProductConfig struct {
+	Address string `yaml:"address"`
 }
 
 type HttpApiConfig struct {
