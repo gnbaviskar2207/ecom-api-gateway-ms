@@ -17,5 +17,6 @@ func New(cfg *config.Config, logger *slog.Logger) *Server {
 	return &Server{
 		cfg:    cfg,
 		logger: logger,
+		apiMux: http.NewServeMux(),
 	}
 }

@@ -2,6 +2,7 @@ environment: development
 http_api:
   address: "0.0.0.0:8081"
   tls: false
+  shutdown_timeout_sec: 10
 
 product_config:
   address: "0.0.0.0:50051"

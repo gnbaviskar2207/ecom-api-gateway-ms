@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"log/slog"
 	"net/http"
@@ -18,13 +17,17 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		slog.Error("product service is stopped", "error", err)
+		slog.Error("product service is stopped with error", "error", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	logLevel := slog.LevelError
+	if os.Getenv("ENV") == "development" {
+		logLevel = slog.LevelDebug
+	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 	slog.SetDefault(logger)
 	configPath := flag.String("config", "./configs/dev/config.yaml", "optional YAML configuration file")
 	flag.Parse()
@@ -42,21 +45,23 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer productConn.Close()
 
 	// middlewares
 
-	srv.apiMux = http.NewServeMux()
-
+	// TODO(metrics)
 	// metrics
 	// registry := prometheus.NewRegistry()
 
+	// handlers
 	ph := httpapi.NewProductHandler(logger, productClient)
 	ph.Register(srv.apiMux)
 
 	apiServer := &http.Server{
-		Addr:    srv.cfg.HttpApiConfig.Address,
-		Handler: srv.apiMux,
+		Addr:         srv.cfg.HttpApiConfig.Address,
+		Handler:      srv.apiMux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
@@ -68,29 +73,29 @@ func run() error {
 	select {
 	case <-rootCtx.Done():
 		srv.logger.Info("server is shutting down gracefully", "error", rootCtx.Err())
-
+		// rootCtx is cancelled here automatically.
 	case serveErr := <-errCh:
-		if !errors.Is(serveErr, http.ErrServerClosed) {
-			return serveErr
-		}
 		srv.logger.Info("server is shutting down due to error", "error", serveErr)
+		rootCtxCancel()
 	}
 
-	// todo: timeout from config
 	shutDownContext, shutDownCancel := context.WithTimeout(
 		context.Background(),
-		10*time.Second,
+		time.Duration(srv.cfg.HttpApiConfig.ShitDownTimeoutSec)*time.Second,
 	)
 	defer shutDownCancel()
-	// stoppedCh := make(chan struct{})
 
 	// gracefully shutdown
 	srv.logger.Info("gracefull shutdown started...")
 	if err := apiServer.Shutdown(shutDownContext); err != nil {
 		srv.logger.Error("server shutdown error", "error", err)
 	}
+	// calling after http server shut down
+	if err := productConn.Close(); err != nil {
+		srv.logger.Error("product connection close error", "error", err)
+	}
 
-	// close(errCh)
+	close(errCh)
 	srv.logger.Info("server is stopped")
 	return nil
 }

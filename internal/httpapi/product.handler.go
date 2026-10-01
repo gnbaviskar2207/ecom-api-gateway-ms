@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -28,16 +29,37 @@ func (ph *ProductHandler) Register(mux *http.ServeMux) {
 }
 
 func (ph *ProductHandler) FindOneByPid(w http.ResponseWriter, r *http.Request) {
-	// write json response
-	// w.Header().Set("Content-Type", "application/json")
-	// w.WriteHeader(http.StatusOK)
-	// w.Write([]byte(`{"message": "Product handler"}`))
 	resp, err := ph.client.FindOneByPid(r.Context(), &productsV1.FindOneByPidRequest{Pid: "6A325F38-D56D-4626-95A0-5FD54F151C8E"})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		writeErrorJSONResponse(w, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(resp.GetProduct().String()))
+
+	writeSuccessJSONResponse(w, resp.GetProduct())
+}
+
+type Response struct {
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+func writeJSONResponse(w http.ResponseWriter, statusCode int, resp Response) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(resp)
+}
+
+func writeSuccessJSONResponse(w http.ResponseWriter, data interface{}) {
+	writeJSONResponse(w, http.StatusOK, Response{
+		Success: true,
+		Data:    data,
+	})
+}
+
+func writeErrorJSONResponse(w http.ResponseWriter, err error) {
+	writeJSONResponse(w, http.StatusInternalServerError, Response{
+		Success: false,
+		Error:   err.Error(),
+	})
 }

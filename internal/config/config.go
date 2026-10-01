@@ -21,10 +21,11 @@ type ProductConfig struct {
 }
 
 type HttpApiConfig struct {
-	Address  string `yaml:"address"`
-	TLS      bool   `yaml:"tls"`
-	CertFile string `yaml:"cert_file"`
-	KeyFile  string `yaml:"key_file"`
+	Address            string `yaml:"address"`
+	TLS                bool   `yaml:"tls"`
+	CertFile           string `yaml:"cert_file"`
+	KeyFile            string `yaml:"key_file"`
+	ShitDownTimeoutSec int    `yaml:"shutdown_timeout_sec"`
 }
 
 func Load(configPath string, logger *slog.Logger) (*Config, error) {
