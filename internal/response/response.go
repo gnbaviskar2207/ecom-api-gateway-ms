@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -61,7 +60,7 @@ func (r *Responder) WriteGRPCError(w http.ResponseWriter, err error) {
 	r.writeJSON(w, httpStatus, Response{
 		Success: false,
 		Error: &ApiError{
-			Code:    strconv.Itoa(httpStatus), // TODO make this better
+			Code:    st.Code().String(),
 			Message: err.Error(),
 		},
 	})
