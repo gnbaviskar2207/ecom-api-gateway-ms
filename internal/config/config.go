@@ -11,9 +11,10 @@ type GatewayConfig struct {
 }
 
 type Config struct {
-	GatewayConfig GatewayConfig `yaml:"gateway"`
-	HttpApiConfig HttpApiConfig `yaml:"http_api"`
-	ProductConfig ProductConfig `yaml:"product_config"`
+	GatewayConfig             GatewayConfig `yaml:"gateway"`
+	HttpApiConfig             HttpApiConfig `yaml:"http_api"`
+	ProductConfig             ProductConfig `yaml:"product_config"`
+	commonConfig.CommonConfig `yaml:",inline"`
 }
 
 type ProductConfig struct {

@@ -13,6 +13,8 @@ import (
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/clients/product"
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/config"
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/httpapi"
+	"github.com/gnbaviskar2207/ecom-common/pkg/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func main() {
@@ -27,7 +29,8 @@ func run() error {
 	if os.Getenv("ENV") == "development" {
 		logLevel = slog.LevelDebug
 	}
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+	// logger with trace correlation
+	logger := slog.New(telemetry.NewTracehandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})))
 	slog.SetDefault(logger)
 	configPath := flag.String("config", "./configs/dev/config.yaml", "optional YAML configuration file")
 	flag.Parse()
@@ -40,6 +43,24 @@ func run() error {
 
 	rootCtx, rootCtxCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer rootCtxCancel()
+
+	// init tracer
+	shutDownTracer, err := telemetry.InitTracer(rootCtx, telemetry.Config{
+		ServiceName:    "ecom-api-gateway-ms",
+		ServiceVersion: "1.0.0",
+		Environment:    cfg.Environment,
+		CollectorURL:   "localhost:4317",
+	})
+
+	if err != nil {
+		logger.Error("failed to init telemetry", "error", err)
+	}
+	defer func() {
+		if shutDownTracer != nil {
+			_ = shutDownTracer(context.Background())
+		}
+	}()
+
 	// all connections
 	productConn, productClient, err := product.Connect(srv.cfg.ProductConfig.Address)
 	if err != nil {
@@ -53,12 +74,19 @@ func run() error {
 	// registry := prometheus.NewRegistry()
 
 	// handlers
+	// wrap the mux handler in otel http handler
+	otelMux := otelhttp.NewHandler(
+		srv.apiMux,
+		"api-gateway",
+		otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents),
+	)
+
 	ph := httpapi.NewProductHandler(logger, productClient)
 	ph.Register(srv.apiMux)
 
 	apiServer := &http.Server{
 		Addr:         srv.cfg.HttpApiConfig.Address,
-		Handler:      srv.apiMux,
+		Handler:      otelMux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,

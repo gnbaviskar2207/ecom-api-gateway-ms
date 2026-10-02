@@ -42,13 +42,17 @@ func (ph *ProductHandler) FindOneByPid(w http.ResponseWriter, r *http.Request) {
 		Pid: r.URL.Query().Get("pid"),
 	}
 	if err := validate.Struct(params); err != nil {
+		ph.logger.WarnContext(r.Context(), "invalid request params", "error", err)
 		ph.responder.WriteGRPCError(w, err)
 		return
 	}
+	ph.logger.InfoContext(r.Context(), "fetching product from product service", "pid", params.Pid)
 	resp, err := ph.client.FindOneByPid(r.Context(), &productsV1.FindOneByPidRequest{Pid: params.Pid})
 	if err != nil {
+		ph.logger.ErrorContext(r.Context(), "product service rpc failed with error", "error", err)
 		ph.responder.WriteGRPCError(w, err)
 		return
 	}
+	ph.logger.InfoContext(r.Context(), "product fetched successfully", "pid", params.Pid, "resp", resp)
 	ph.responder.WriteSuccess(w, http.StatusOK, resp.GetProduct())
 }
