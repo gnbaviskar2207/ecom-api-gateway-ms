@@ -46,10 +46,10 @@ func run() error {
 
 	// init tracer
 	shutDownTracer, err := telemetry.InitTracer(rootCtx, telemetry.Config{
-		ServiceName:    "ecom-api-gateway-ms",
-		ServiceVersion: "1.0.0",
+		ServiceName:    cfg.ServiceName,
+		ServiceVersion: cfg.ServiceVersion,
 		Environment:    cfg.Environment,
-		CollectorURL:   "localhost:4317",
+		CollectorURL:   cfg.OTelConfig.CollectorURL,
 	})
 
 	if err != nil {
@@ -87,9 +87,9 @@ func run() error {
 	apiServer := &http.Server{
 		Addr:         srv.cfg.HttpApiConfig.Address,
 		Handler:      otelMux,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  time.Duration(srv.cfg.HttpApiConfig.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(srv.cfg.HttpApiConfig.WriteTimeout) * time.Second,
+		IdleTimeout:  time.Duration(srv.cfg.HttpApiConfig.IdleTimeout) * time.Second,
 	}
 
 	errCh := make(chan error, 1)
