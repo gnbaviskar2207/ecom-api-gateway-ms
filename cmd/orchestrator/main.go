@@ -62,7 +62,7 @@ func run() error {
 	}()
 
 	// all connections
-	productConn, productClient, err := product.Connect(srv.cfg.ProductConfig.Address)
+	productConn, productClient, err := product.Connect(srv.cfg.ProductConfig.Address, *srv.cfg)
 	if err != nil {
 		return err
 	}

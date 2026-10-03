@@ -19,7 +19,9 @@ type Config struct {
 }
 
 type ProductConfig struct {
-	Address string `yaml:"address"`
+	Address    string `yaml:"address"`
+	CaFile     string `yaml:"ca_file"`
+	ServerName string `yaml:"server_name"`
 }
 
 type HttpApiConfig struct {
