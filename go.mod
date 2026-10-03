@@ -37,11 +37,11 @@ require (
 )
 
 require (
-	github.com/gnbaviskar2207/ecom-common v0.0.9
+	github.com/gnbaviskar2207/ecom-common v0.1.0
 	github.com/go-playground/validator v9.31.0+incompatible
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.66.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.66.0
 	google.golang.org/grpc v1.80.0
 )
 
-replace github.com/gnbaviskar2207/ecom-common => ../ecom-common
+// replace github.com/gnbaviskar2207/ecom-common => ../ecom-common
