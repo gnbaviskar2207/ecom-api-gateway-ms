@@ -11,13 +11,17 @@ type GatewayConfig struct {
 }
 
 type Config struct {
-	GatewayConfig GatewayConfig `yaml:"gateway"`
-	HttpApiConfig HttpApiConfig `yaml:"http_api"`
-	ProductConfig ProductConfig `yaml:"product_config"`
+	GatewayConfig             GatewayConfig `yaml:"gateway"`
+	HttpApiConfig             HttpApiConfig `yaml:"http_api"`
+	ProductConfig             ProductConfig `yaml:"product_config"`
+	OTelConfig                OTelConfig    `yaml:"otel"`
+	commonConfig.CommonConfig `yaml:",inline"`
 }
 
 type ProductConfig struct {
-	Address string `yaml:"address"`
+	Address    string `yaml:"address"`
+	CaFile     string `yaml:"ca_file"`
+	ServerName string `yaml:"server_name"`
 }
 
 type HttpApiConfig struct {
@@ -26,6 +30,13 @@ type HttpApiConfig struct {
 	CertFile           string `yaml:"cert_file"`
 	KeyFile            string `yaml:"key_file"`
 	ShitDownTimeoutSec int    `yaml:"shutdown_timeout_sec"`
+	ReadTimeout        int    `yaml:"read_timeout_sec"`
+	WriteTimeout       int    `yaml:"write_timeout_sec"`
+	IdleTimeout        int    `yaml:"idle_timeout_sec"`
+}
+
+type OTelConfig struct {
+	CollectorURL string `yaml:"collector_url"`
 }
 
 func Load(configPath string, logger *slog.Logger) (*Config, error) {

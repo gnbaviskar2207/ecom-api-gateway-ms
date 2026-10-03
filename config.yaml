@@ -1,8 +1,19 @@
-environment: development
+environment: "development"
+service_name: "ecom-api-gateway-ms"
+service_version: "1.0.0"
+
 http_api:
   address: "0.0.0.0:8081"
   tls: false
   shutdown_timeout_sec: 10
+  read_timeout_sec: 10
+  write_timeout_sec: 10
+  idle_timeout_sec: 120
 
 product_config:
   address: "0.0.0.0:50051"
+  ca_file: "./certs/ca.crt"
+  server_name: "ecom-product-ms"
+
+otel:
+  collector_url: "localhost:4317"
