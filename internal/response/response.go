@@ -28,10 +28,13 @@ type ApiError struct {
 	Message string `json:"message"`
 }
 
-func (r *Responder) writeJSON(w http.ResponseWriter, statusCode int, response Response) {
+func (r *Responder) addHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
+}
 
+func (r *Responder) writeJSON(w http.ResponseWriter, statusCode int, response Response) {
+	r.addHeaders(w)
+	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -61,6 +64,16 @@ func (r *Responder) WriteGRPCError(w http.ResponseWriter, err error) {
 		Success: false,
 		Error: &ApiError{
 			Code:    st.Code().String(),
+			Message: err.Error(),
+		},
+	})
+}
+
+func (r *Responder) WriteErrorWithCode(w http.ResponseWriter, errCode int, err error) {
+	r.writeJSON(w, errCode, Response{
+		Success: false,
+		Error: &ApiError{
+			Code:    http.StatusText(errCode),
 			Message: err.Error(),
 		},
 	})

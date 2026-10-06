@@ -19,11 +19,11 @@ type ProductClient interface {
 	productsV1.ProductServiceClient
 }
 
-func NewProductHandler(logger *slog.Logger, client ProductClient) *ProductHandler {
+func NewProductHandler(logger *slog.Logger, client ProductClient, responder *response.Responder) *ProductHandler {
 	return &ProductHandler{
 		logger:    logger,
 		client:    client,
-		responder: response.New(logger),
+		responder: responder,
 	}
 }
 
