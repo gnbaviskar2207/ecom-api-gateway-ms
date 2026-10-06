@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/response"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Middleware struct {
@@ -22,7 +23,24 @@ func New(logger *slog.Logger, responder *response.Responder) *Middleware {
 }
 
 func (m *Middleware) Wrap(next http.Handler) http.Handler {
-	return m.recover(next)
+	return m.requestID(m.recover(next))
+}
+
+const HeaderRequestIDKey = "X-Request-ID"
+
+func (m *Middleware) requestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		span := trace.SpanFromContext(r.Context())
+
+		if spanContext := span.SpanContext(); spanContext.IsValid() {
+			traceID := spanContext.TraceID().String()
+			// set on response headers so clients can use the same traceId for their requests
+			w.Header().Set(HeaderRequestIDKey, traceID)
+			// also set on request headers so downstream handler can read it
+			r.Header.Set(HeaderRequestIDKey, traceID)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (m *Middleware) recover(next http.Handler) http.Handler {

@@ -19,6 +19,7 @@ func New(logger *slog.Logger) *Responder {
 
 type Response struct {
 	Success bool      `json:"success"`
+	TraceId string    `json:"trace_id"`
 	Data    any       `json:"data,omitempty"`
 	Error   *ApiError `json:"error,omitempty"`
 }
@@ -35,7 +36,10 @@ func (r *Responder) addHeaders(w http.ResponseWriter) {
 func (r *Responder) writeJSON(w http.ResponseWriter, statusCode int, response Response) {
 	r.addHeaders(w)
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(response)
+	response.TraceId = w.Header().Get("X-Request-ID")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		r.logger.Error("Failed to encode response", "error", err, "trace_id", response.TraceId)
+	}
 }
 
 func (r *Responder) WriteSuccess(w http.ResponseWriter, statusCode int, data any) {
