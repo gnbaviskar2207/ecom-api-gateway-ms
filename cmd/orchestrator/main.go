@@ -13,6 +13,7 @@ import (
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/clients/product"
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/config"
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/httpapi"
+	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/middlewares"
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/response"
 	"github.com/gnbaviskar2207/ecom-common/pkg/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -70,7 +71,7 @@ func run() error {
 
 	// middlewares
 	responder := response.New(logger)
-	middleware := httpapi.New(logger, responder)
+	middleware := middlewares.New(logger, responder, srv.cfg.SecurityConfigs.RequestsPerSecond, srv.cfg.SecurityConfigs.Burst)
 
 	// TODO(metrics)
 	// metrics
