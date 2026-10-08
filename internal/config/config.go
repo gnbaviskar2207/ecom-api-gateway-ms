@@ -11,11 +11,17 @@ type GatewayConfig struct {
 }
 
 type Config struct {
-	GatewayConfig             GatewayConfig `yaml:"gateway"`
-	HttpApiConfig             HttpApiConfig `yaml:"http_api"`
-	ProductConfig             ProductConfig `yaml:"product_config"`
-	OTelConfig                OTelConfig    `yaml:"otel"`
+	GatewayConfig             GatewayConfig  `yaml:"gateway"`
+	HttpApiConfig             HttpApiConfig  `yaml:"http_api"`
+	ProductConfig             ProductConfig  `yaml:"product_config"`
+	OTelConfig                OTelConfig     `yaml:"otel"`
+	SecurityConfigs           SecurityConfig `yaml:"security"`
 	commonConfig.CommonConfig `yaml:",inline"`
+}
+
+type SecurityConfig struct {
+	RequestsPerSecond int `yaml:"requests_per_second"`
+	Burst             int `yaml:"burst"`
 }
 
 type ProductConfig struct {

@@ -13,6 +13,8 @@ import (
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/clients/product"
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/config"
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/httpapi"
+	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/middlewares"
+	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/response"
 	"github.com/gnbaviskar2207/ecom-common/pkg/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -68,6 +70,8 @@ func run() error {
 	}
 
 	// middlewares
+	responder := response.New(logger)
+	middleware := middlewares.New(logger, responder, srv.cfg.SecurityConfigs.RequestsPerSecond, srv.cfg.SecurityConfigs.Burst)
 
 	// TODO(metrics)
 	// metrics
@@ -76,13 +80,14 @@ func run() error {
 	// handlers
 	// wrap the mux handler in otel http handler
 	otelMux := otelhttp.NewHandler(
-		srv.apiMux,
+		middleware.Wrap(srv.apiMux),
 		"api-gateway",
 		otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents),
 	)
-
-	ph := httpapi.NewProductHandler(logger, productClient)
-	ph.Register(srv.apiMux)
+	v1Router := http.NewServeMux()
+	ph := httpapi.NewProductHandler(logger, productClient, responder)
+	ph.Register(v1Router)
+	srv.apiMux.Handle("/api/v1/", http.StripPrefix("/api/v1", v1Router))
 
 	apiServer := &http.Server{
 		Addr:         srv.cfg.HttpApiConfig.Address,

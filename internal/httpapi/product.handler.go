@@ -1,8 +1,10 @@
 package httpapi
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gnbaviskar2207/ecom-api-gateway-ms/internal/response"
 	productsV1 "github.com/gnbaviskar2207/ecom-common/pkg/gen/products"
@@ -19,16 +21,16 @@ type ProductClient interface {
 	productsV1.ProductServiceClient
 }
 
-func NewProductHandler(logger *slog.Logger, client ProductClient) *ProductHandler {
+func NewProductHandler(logger *slog.Logger, client ProductClient, responder *response.Responder) *ProductHandler {
 	return &ProductHandler{
 		logger:    logger,
 		client:    client,
-		responder: response.New(logger),
+		responder: responder,
 	}
 }
 
 func (ph *ProductHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("/product", ph.FindOneByPid)
+	mux.HandleFunc("GET /product", ph.FindOneByPid)
 }
 
 var validate = validator.New()
@@ -47,7 +49,9 @@ func (ph *ProductHandler) FindOneByPid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ph.logger.InfoContext(r.Context(), "fetching product from product service", "pid", params.Pid)
-	resp, err := ph.client.FindOneByPid(r.Context(), &productsV1.FindOneByPidRequest{Pid: params.Pid})
+	rpcCtx, rpcCancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer rpcCancel()
+	resp, err := ph.client.FindOneByPid(rpcCtx, &productsV1.FindOneByPidRequest{Pid: params.Pid})
 	if err != nil {
 		ph.logger.ErrorContext(r.Context(), "product service rpc failed with error", "error", err)
 		ph.responder.WriteGRPCError(w, err)
