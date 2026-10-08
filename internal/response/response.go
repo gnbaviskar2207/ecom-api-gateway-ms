@@ -7,6 +7,8 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type Responder struct {
@@ -22,6 +24,10 @@ type Response struct {
 	TraceId string    `json:"trace_id"`
 	Data    any       `json:"data,omitempty"`
 	Error   *ApiError `json:"error,omitempty"`
+
+	// rawData holds a pre-marshaled proto payload so the outer encoder
+	// embeds it verbatim without re-encoding through encoding/json.
+	rawData json.RawMessage
 }
 
 type ApiError struct {
@@ -33,11 +39,56 @@ func (r *Responder) addHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
+// wireResponse is the actual shape written to the wire.
+// It uses json.RawMessage for Data so a pre-marshaled proto payload
+// is embedded verbatim, preserving zero-value / unpopulated fields.
+type wireResponse struct {
+	Success bool            `json:"success"`
+	TraceId string          `json:"trace_id"`
+	Data    json.RawMessage `json:"data,omitempty"`
+	Error   *ApiError       `json:"error,omitempty"`
+}
+
+var protoJSONMarshaler = protojson.MarshalOptions{
+	// Include fields that are set to their default / zero values.
+	EmitUnpopulated: true,
+	// Use proto field names (snake_case) to match existing API contract.
+	UseProtoNames: true,
+}
+
 func (r *Responder) writeJSON(w http.ResponseWriter, statusCode int, response Response) {
 	r.addHeaders(w)
 	w.WriteHeader(statusCode)
 	response.TraceId = w.Header().Get("X-Request-ID")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+
+	wire := wireResponse{
+		Success: response.Success,
+		TraceId: response.TraceId,
+		Error:   response.Error,
+	}
+
+	if response.Data != nil {
+		if msg, ok := response.Data.(proto.Message); ok {
+			// Marshal proto message with protojson so zero-value fields are preserved.
+			b, err := protoJSONMarshaler.Marshal(msg)
+			if err != nil {
+				r.logger.Error("Failed to marshal proto response", "error", err, "trace_id", response.TraceId)
+			} else {
+				wire.Data = b
+			}
+
+		} else {
+			// Non-proto data: marshal normally and embed as raw JSON.
+			b, err := json.Marshal(response.Data)
+			if err != nil {
+				r.logger.Error("Failed to marshal response data", "error", err, "trace_id", response.TraceId)
+			} else {
+				wire.Data = b
+			}
+		}
+	}
+
+	if err := json.NewEncoder(w).Encode(wire); err != nil {
 		r.logger.Error("Failed to encode response", "error", err, "trace_id", response.TraceId)
 	}
 }
