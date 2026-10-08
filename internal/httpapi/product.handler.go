@@ -28,7 +28,7 @@ func NewProductHandler(logger *slog.Logger, client ProductClient, responder *res
 }
 
 func (ph *ProductHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("/product", ph.FindOneByPid)
+	mux.HandleFunc("GET /product", ph.FindOneByPid)
 }
 
 var validate = validator.New()

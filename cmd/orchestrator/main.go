@@ -84,9 +84,10 @@ func run() error {
 		"api-gateway",
 		otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents),
 	)
-
+	v1Router := http.NewServeMux()
 	ph := httpapi.NewProductHandler(logger, productClient, responder)
-	ph.Register(srv.apiMux)
+	ph.Register(v1Router)
+	srv.apiMux.Handle("/api/v1/", http.StripPrefix("/api/v1", v1Router))
 
 	apiServer := &http.Server{
 		Addr:         srv.cfg.HttpApiConfig.Address,
