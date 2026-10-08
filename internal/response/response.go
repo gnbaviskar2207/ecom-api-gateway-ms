@@ -162,6 +162,8 @@ func grpcCodeToHttpStatus(code codes.Code) int {
 		return http.StatusNotImplemented
 	case codes.Unauthenticated:
 		return http.StatusUnauthorized
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}
